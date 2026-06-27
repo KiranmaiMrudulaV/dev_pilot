@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SDLC Agent Platform</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* Header */
+        header { background: #161b22; padding: 18px 40px; border-bottom: 1px solid #30363d; text-align: center; }
+        header h1 { color: #58a6ff; font-size: 24px; letter-spacing: 0.5px; }
+        header p { color: #8b949e; font-size: 13px; margin-top: 4px; }
+
+        /* Layout */
+        .layout { display: flex; flex: 1; }
+
+        /* Sidebar */
+        .sidebar { width: 220px; background: #161b22; border-right: 1px solid #30363d;
+                   padding: 24px 0; flex-shrink: 0; }
+        .sidebar-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+                         color: #8b949e; padding: 0 20px 12px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+                    cursor: pointer; color: #8b949e; font-size: 14px; border-left: 3px solid transparent;
+                    transition: all 0.15s; }
+        .nav-item:hover { background: #1c2128; color: #c9d1d9; }
+        .nav-item.active { background: #1c2128; color: #58a6ff; border-left-color: #58a6ff; }
+        .nav-icon { font-size: 16px; }
+        .sidebar-divider { border: none; border-top: 1px solid #30363d; margin: 12px 0; }
+
+        /* Main content */
+        .main { flex: 1; padding: 32px 40px; max-width: 800px; }
+
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .panel-title { font-size: 18px; color: #e6edf3; margin-bottom: 6px; }
+        .panel-desc { font-size: 13px; color: #8b949e; margin-bottom: 24px; }
+
+        label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; margin-top: 16px; }
+        input, textarea { width: 100%; padding: 8px 12px; background: #0d1117;
+                          border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
+        input:focus, textarea:focus { outline: none; border-color: #58a6ff; }
+        textarea { height: 80px; resize: vertical; }
+        button[type=submit] { margin-top: 20px; padding: 10px 24px; background: #238636;
+                              color: white; border: none; border-radius: 6px;
+                              cursor: pointer; font-size: 14px; }
+        button[type=submit]:hover { background: #2ea043; }
+
+        .result { margin-top: 32px; background: #161b22; border: 1px solid #30363d;
+                  border-radius: 8px; padding: 20px; }
+        .result-header { display: flex; align-items: center; gap-8px; margin-bottom: 12px; }
+        .result h3 { color: #58a6ff; font-size: 13px; text-transform: uppercase;
+                     letter-spacing: 0.5px; margin-bottom: 12px; }
+        .result pre { white-space: pre-wrap; font-size: 13px; line-height: 1.7; color: #c9d1d9; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>SDLC Agent Platform</h1>
+    <p>AI-powered agents across the software delivery lifecycle</p>
+</header>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-title">Agents</div>
+
+        <div class="nav-item {% if active == 'review' or not active %}active{% endif %}"
+             onclick="showPanel('review')">
+            <span class="nav-icon">🔍</span> PR Review
+        </div>
+        <div class="nav-item {% if active == 'testgen' %}active{% endif %}"
+             onclick="showPanel('testgen')">
+            <span class="nav-icon">🧪</span> Test Generation
+        </div>
+        <div class="nav-item {% if active == 'cicd' %}active{% endif %}"
+             onclick="showPanel('cicd')">
+            <span class="nav-icon">⚙️</span> CI/CD Verification
+        </div>
+        <div class="nav-item {% if active == 'deployment' %}active{% endif %}"
+             onclick="showPanel('deployment')">
+            <span class="nav-icon">🚀</span> Deployment Monitor
+        </div>
+        <div class="nav-item {% if active == 'incident' %}active{% endif %}"
+             onclick="showPanel('incident')">
+            <span class="nav-icon">🚨</span> Incident Analysis
+        </div>
+
+        <hr class="sidebar-divider">
+        <div class="sidebar-title">Repo</div>
+        <div class="nav-item" style="cursor:default; font-size:12px; color:#8b949e; padding-top:6px;">
+            Any public GitHub repo
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- PR Review -->
+        <div class="panel {% if active == 'review' or not active %}active{% endif %}" id="panel-review">
+            <div class="panel-title">PR Review</div>
+            <div class="panel-desc">Analyze a pull request for bugs, security vulnerabilities, and code quality issues.</div>
+            <form method="POST" action="/review">
+                <label>GitHub Repo (owner/repo)</label>
+                <input type="text" name="repo" placeholder="e.g. psf/requests" required>
+                <label>PR Number</label>
+                <input type="number" name="pr_number" placeholder="e.g. 42" required>
+                <button type="submit">Run PR Review</button>
+            </form>
+        </div>
+
+        <!-- Test Generation -->
+        <div class="panel {% if active == 'testgen' %}active{% endif %}" id="panel-testgen">
+            <div class="panel-title">Test Generation</div>
+            <div class="panel-desc">Automatically generate pytest tests for any source file in your repository.</div>
+            <form method="POST" action="/testgen">
+                <label>GitHub Repo (owner/repo)</label>
+                <input type="text" name="repo" placeholder="e.g. psf/requests" required>
+                <label>File Path</label>
+                <input type="text" name="file_path" placeholder="e.g. src/auth.py" required>
+                <label>Branch</label>
+                <input type="text" name="branch" placeholder="e.g. main or feature/my-branch">
+                <button type="submit">Generate Tests</button>
+            </form>
+        </div>
+
+        <!-- CI/CD -->
+        <div class="panel {% if active == 'cicd' %}active{% endif %}" id="panel-cicd">
+            <div class="panel-title">CI/CD Verification</div>
+            <div class="panel-desc">Check recent workflow runs and get a plain-English explanation of any failures.</div>
+            <form method="POST" action="/cicd">
+                <label>GitHub Repo (owner/repo)</label>
+                <input type="text" name="repo" placeholder="e.g. psf/requests" required>
+                <button type="submit">Check CI/CD Status</button>
+            </form>
+        </div>
+
+        <!-- Deployment -->
+        <div class="panel {% if active == 'deployment' %}active{% endif %}" id="panel-deployment">
+            <div class="panel-title">Deployment Monitor</div>
+            <div class="panel-desc">Analyze deployment history across environments and identify failure patterns.</div>
+            <form method="POST" action="/deployment">
+                <label>GitHub Repo (owner/repo)</label>
+                <input type="text" name="repo" placeholder="e.g. psf/requests" required>
+                <button type="submit">Monitor Deployments</button>
+            </form>
+        </div>
+
+        <!-- Incident Analysis -->
+        <div class="panel {% if active == 'incident' %}active{% endif %}" id="panel-incident">
+            <div class="panel-title">Incident Analysis</div>
+            <div class="panel-desc">Describe a production incident and the agent will investigate commits, issues, and deployments to find the root cause.</div>
+            <form method="POST" action="/incident">
+                <label>GitHub Repo (owner/repo)</label>
+                <input type="text" name="repo" placeholder="e.g. psf/requests" required>
+                <label>Describe the incident</label>
+                <textarea name="description" placeholder="e.g. Production is down. Users reporting 500 errors since the last deployment." required></textarea>
+                <button type="submit">Analyze Incident</button>
+            </form>
+        </div>
+
+        {% if result %}
+        <div class="result">
+            <h3>Agent Output</h3>
+            <pre>{{ result }}</pre>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+    function showPanel(name) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('panel-' + name).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+</script>
+
+</body>
+</html>
