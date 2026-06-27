@@ -52,7 +52,7 @@ sdlc-agent-platform/
 
 **1. Clone the repo**
 ```bash
-git clone https://github.com/KiranmaiMrudulaV/sdlc-agent-platform.git
+git clone https://github.com/KiranmaiMrudulaV/dev_pilot.git
 cd sdlc-agent-platform
 ```
 
