@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from app.agents.pr_review_agent import run_pr_review_agent
 from app.agents.test_gen_agent import run_test_gen_agent
 from app.agents.cicd_agent import run_cicd_agent
@@ -9,7 +9,12 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("home.html")
+
+@app.route("/app")
+def dashboard():
+    agent = request.args.get("agent", "review")
+    return render_template("index.html", active=agent)
 
 @app.route("/review", methods=["POST"])
 def review():

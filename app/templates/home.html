@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DevPilot — AI Agents for Software Delivery</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
+
+        /* Nav */
+        nav { display: flex; justify-content: space-between; align-items: center;
+              padding: 18px 60px; border-bottom: 1px solid #30363d; background: #161b22; }
+        .nav-logo { color: #58a6ff; font-size: 20px; font-weight: bold; }
+        .nav-btn { padding: 7px 16px; background: #21262d; border: 1px solid #30363d;
+                   color: #c9d1d9; border-radius: 6px; font-size: 13px; cursor: pointer; }
+        .nav-btn:hover { background: #30363d; color: white; }
+
+        /* Floating side launch button */
+        .side-launch { position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+                       background: #1f6feb; color: white; padding: 12px 20px;
+                       border-radius: 8px 0 0 8px; text-decoration: none; font-size: 14px;
+                       font-weight: bold; letter-spacing: 0.3px; z-index: 50;
+                       transition: opacity 0.3s, right 0.3s; white-space: nowrap; }
+        .side-launch:hover { background: #388bfd; right: 2px; }
+        .side-launch.hidden { opacity: 0; pointer-events: none; }
+
+        /* Help modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+                         z-index: 100; justify-content: center; align-items: center; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+                 padding: 28px; max-width: 480px; width: 90%; }
+        .modal h2 { color: #e6edf3; font-size: 18px; margin-bottom: 16px; }
+        .modal p { color: #8b949e; font-size: 13px; line-height: 1.7; margin-bottom: 10px; }
+        .modal code { background: #0d1117; padding: 2px 6px; border-radius: 4px;
+                      color: #58a6ff; font-size: 12px; }
+        .modal-close { margin-top: 20px; padding: 8px 20px; background: #21262d;
+                       border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px;
+                       cursor: pointer; font-size: 13px; }
+        .modal-close:hover { background: #30363d; }
+
+        /* Hero */
+        .hero { text-align: center; padding: 100px 40px 60px; }
+        .badge { display: inline-block; background: #1f2937; border: 1px solid #30363d;
+                 color: #58a6ff; font-size: 12px; padding: 4px 12px; border-radius: 20px;
+                 margin-bottom: 24px; }
+        .hero h1 { font-size: 52px; color: #e6edf3; line-height: 1.2; margin-bottom: 20px; }
+        .hero h1 span { color: #58a6ff; }
+        .hero p { font-size: 18px; color: #8b949e; max-width: 580px; margin: 0 auto 40px; line-height: 1.6; }
+
+        /* Agents grid */
+        .section { padding: 60px 60px; }
+        .section-title { text-align: center; font-size: 28px; color: #e6edf3; margin-bottom: 8px; }
+        .section-sub { text-align: center; color: #8b949e; font-size: 15px; margin-bottom: 48px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 24px;
+                cursor: pointer; transition: border-color 0.15s, transform 0.15s; text-align: left; }
+        .card:hover { border-color: #1f6feb; transform: translateY(-2px); }
+        .card-icon { font-size: 28px; margin-bottom: 12px; }
+        .card-title { font-size: 16px; color: #e6edf3; margin-bottom: 8px; }
+        .card-desc { font-size: 13px; color: #8b949e; line-height: 1.6; }
+        .card-cta { margin-top: 14px; font-size: 12px; color: #1f6feb; font-weight: bold; }
+
+        /* How it works */
+        .how { background: #161b22; border-top: 1px solid #30363d; border-bottom: 1px solid #30363d;
+               padding: 60px; text-align: center; }
+        .steps { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; margin-top: 40px; }
+        .step { max-width: 200px; }
+        .step-num { width: 36px; height: 36px; border-radius: 50%; background: #1f6feb;
+                    color: white; font-size: 14px; display: flex; align-items: center;
+                    justify-content: center; margin: 0 auto 12px; }
+        .step-title { font-size: 14px; color: #e6edf3; margin-bottom: 6px; }
+        .step-desc { font-size: 13px; color: #8b949e; line-height: 1.5; }
+
+        /* CTA */
+        .cta { text-align: center; padding: 80px 40px; }
+        .cta h2 { font-size: 32px; color: #e6edf3; margin-bottom: 16px; }
+        .cta p { color: #8b949e; margin-bottom: 32px; font-size: 15px; }
+        .cta-btn { display: inline-block; padding: 14px 36px; background: #238636;
+                   color: white; border-radius: 8px; text-decoration: none; font-size: 16px; }
+        .cta-btn:hover { background: #2ea043; }
+
+        /* Setup wizard */
+        .wizard-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+                          z-index: 200; justify-content: center; align-items: center; }
+        .wizard-overlay.open { display: flex; }
+        .wizard { background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+                  padding: 36px; max-width: 540px; width: 90%; }
+        .wizard-step { display: none; }
+        .wizard-step.active { display: block; }
+        .step-indicator { display: flex; gap: 8px; margin-bottom: 28px; }
+        .step-dot { width: 8px; height: 8px; border-radius: 50%; background: #30363d; }
+        .step-dot.active { background: #1f6feb; }
+        .step-dot.done { background: #238636; }
+        .wizard h2 { color: #e6edf3; font-size: 20px; margin-bottom: 8px; }
+        .wizard-sub { color: #8b949e; font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+        .wizard-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+                      padding: 16px; margin-bottom: 16px; }
+        .wizard-box p { font-size: 13px; color: #8b949e; line-height: 1.8; }
+        .wizard-box code { background: #161b22; border: 1px solid #30363d; padding: 2px 8px;
+                           border-radius: 4px; color: #58a6ff; font-size: 12px; }
+        .wizard-box a { color: #58a6ff; }
+        .step-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+                      color: #58a6ff; margin-bottom: 6px; }
+        .wizard-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; }
+        .btn-next { padding: 10px 24px; background: #1f6feb; color: white; border: none;
+                    border-radius: 6px; font-size: 14px; cursor: pointer; }
+        .btn-next:hover { background: #388bfd; }
+        .btn-next.green { background: #238636; }
+        .btn-next.green:hover { background: #2ea043; }
+        .btn-skip { background: none; border: none; color: #8b949e; font-size: 13px;
+                    cursor: pointer; padding: 0; }
+        .btn-skip:hover { color: #c9d1d9; }
+        .check-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+        .check-icon { color: #238636; font-size: 16px; margin-top: 1px; }
+        .agent-choice { display: flex; align-items: center; gap: 14px; padding: 12px 16px;
+                        background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+                        cursor: pointer; transition: border-color 0.15s; }
+        .agent-choice:hover { border-color: #1f6feb; background: #111827; }
+        .agent-choice span { font-size: 22px; }
+        .agent-choice-title { font-size: 14px; color: #e6edf3; margin-bottom: 2px; }
+        .agent-choice-desc { font-size: 12px; color: #8b949e; }
+
+        /* Footer */
+        footer { text-align: center; padding: 24px; border-top: 1px solid #30363d;
+                 color: #8b949e; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<!-- Floating side launch button -->
+<a href="/app" class="side-launch" id="sideLaunch">Launch DevPilot</a>
+
+<nav>
+    <div class="nav-logo">⌂ DevPilot</div>
+    <button class="nav-btn" onclick="document.getElementById('helpModal').classList.add('open')">⚙ Settings & Help</button>
+</nav>
+
+<!-- Help Modal -->
+<div class="modal-overlay" id="helpModal">
+    <div class="modal">
+        <h2>⚙ Settings & Help</h2>
+        <p><strong style="color:#e6edf3;">API Keys</strong><br>
+        Add your keys to the <code>.env</code> file in the project root.<br>
+        <code>ANTHROPIC_API_KEY</code> — from console.anthropic.com<br>
+        <code>GITHUB_TOKEN</code> — from GitHub → Settings → Developer settings</p>
+
+        <p><strong style="color:#e6edf3;">GitHub Token Scopes</strong><br>
+        Requires: <code>public_repo</code>, <code>repo:status</code>, <code>repo_deployment</code></p>
+
+        <p><strong style="color:#e6edf3;">Supported Repos</strong><br>
+        Works with any public GitHub repository. For private repos, use the full <code>repo</code> scope.</p>
+
+        <p><strong style="color:#e6edf3;">Model</strong><br>
+        All agents use <code>claude-haiku-4-5</code> — fast and cost-efficient (~$0.001 per run).</p>
+
+        <button class="modal-close" onclick="document.getElementById('helpModal').classList.remove('open')">Close</button>
+    </div>
+</div>
+
+<div class="hero">
+    <div class="badge">Powered by Claude AI</div>
+    <h1>Your AI co-pilot for<br><span>software delivery</span></h1>
+    <p>Five intelligent agents that review code, generate tests, verify pipelines, monitor deployments, and analyze incidents — automatically.</p>
+</div>
+
+<div class="section">
+    <div class="section-title">Five agents. One platform.</div>
+    <div class="section-sub">Each agent specializes in a different stage of your delivery lifecycle.</div>
+    <div class="grid">
+        <div class="card" onclick="openWizardForAgent('review')">
+            <div class="card-icon">🔍</div>
+            <div class="card-title">PR Review</div>
+            <div class="card-desc">Analyzes pull request diffs for bugs, SQL injection, missing error handling, and security vulnerabilities before merge.</div>
+        </div>
+        <div class="card" onclick="openWizardForAgent('testgen')">
+            <div class="card-icon">🧪</div>
+            <div class="card-title">Test Generation</div>
+            <div class="card-desc">Reads any source file and automatically writes comprehensive pytest tests covering happy path, edge cases, and security scenarios.</div>
+        </div>
+        <div class="card" onclick="openWizardForAgent('cicd')">
+            <div class="card-icon">⚙️</div>
+            <div class="card-title">CI/CD Verification</div>
+            <div class="card-desc">Fetches GitHub Actions workflow runs and explains failures in plain English — no more reading through hundreds of log lines.</div>
+        </div>
+        <div class="card" onclick="openWizardForAgent('deployment')">
+            <div class="card-icon">🚀</div>
+            <div class="card-title">Deployment Monitor</div>
+            <div class="card-desc">Analyzes deployment history across staging and production environments, identifies failure patterns, and recommends next steps.</div>
+        </div>
+        <div class="card" onclick="openWizardForAgent('incident')">
+            <div class="card-icon">🚨</div>
+            <div class="card-title">Incident Analysis</div>
+            <div class="card-desc">Describe a production incident and the agent investigates recent commits, open issues, and deployments to find the root cause instantly.</div>
+        </div>
+    </div>
+</div>
+
+<div class="how">
+    <div class="section-title">How it works</div>
+    <div class="section-sub">Each agent follows the same pattern — powered by the Claude AI agent loop.</div>
+    <div class="steps">
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-title">Describe the goal</div>
+            <div class="step-desc">Enter a repo and describe what you want — review a PR, check CI, analyze an incident.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-title">Agent fetches data</div>
+            <div class="step-desc">Claude decides which GitHub API tools to call and in what order to gather the information it needs.</div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-title">Get the analysis</div>
+            <div class="step-desc">Claude analyzes the data and returns a clear, actionable report in plain English.</div>
+        </div>
+    </div>
+</div>
+
+<div class="cta">
+    <h2>Ready to try it?</h2>
+    <p>Works with any public GitHub repository. No setup required beyond API keys.</p>
+    <a href="/app" class="cta-btn" id="ctaBtn">Launch DevPilot →</a>
+</div>
+
+<!-- Setup Wizard -->
+<div class="wizard-overlay" id="wizardOverlay">
+    <div class="wizard">
+
+        <!-- Step dots -->
+        <div class="step-indicator">
+            <div class="step-dot active" id="dot-0"></div>
+            <div class="step-dot" id="dot-1"></div>
+            <div class="step-dot" id="dot-2"></div>
+            <div class="step-dot" id="dot-3"></div>
+        </div>
+
+        <!-- Step 1: Welcome -->
+        <div class="wizard-step active" id="step-0">
+            <div class="step-label">Step 1 of 4</div>
+            <h2>Welcome to DevPilot</h2>
+
+            <!-- Shown if setup already done -->
+            <div id="already-setup" style="display:none;">
+                <div class="wizard-sub">Looks like you've already set up your API keys. Jump straight to an agent or redo the setup.</div>
+                <div class="wizard-box" style="margin-bottom:12px;">
+                    <div class="check-row"><span class="check-icon">✅</span><p>Anthropic API Key — already configured</p></div>
+                    <div class="check-row"><span class="check-icon">✅</span><p>GitHub Token — already configured</p></div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <button class="btn-next green" style="width:100%; padding:12px;" onclick="showStep(3)">Pick an agent and launch →</button>
+                    <button class="btn-skip" style="text-align:center;" onclick="redoSetup()">Redo setup from scratch</button>
+                </div>
+            </div>
+
+            <!-- Shown if first time -->
+            <div id="first-setup">
+                <div class="wizard-sub">Before you start, let's make sure everything is set up. This takes about 2 minutes.</div>
+                <div class="wizard-box">
+                    <div class="check-row"><span class="check-icon">✦</span><p><strong style="color:#e6edf3;">Anthropic API Key</strong> — powers all 5 AI agents</p></div>
+                    <div class="check-row"><span class="check-icon">✦</span><p><strong style="color:#e6edf3;">GitHub Token</strong> — reads your repos, PRs, CI runs, and deployments</p></div>
+                    <div class="check-row"><span class="check-icon">✦</span><p><strong style="color:#e6edf3;">.env file</strong> — stores both keys securely on your machine</p></div>
+                </div>
+                <div class="wizard-actions">
+                    <button class="btn-skip" onclick="showStep(3)">Skip setup →</button>
+                    <button class="btn-next" onclick="nextStep()">Let's go →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Anthropic API Key -->
+        <div class="wizard-step" id="step-1">
+            <div class="step-label">Step 2 of 4</div>
+            <h2>Anthropic API Key</h2>
+            <div class="wizard-sub">This key lets your agents call Claude AI. You get $5 free credits — enough for the entire project.</div>
+            <div class="wizard-box">
+                <p>1. Go to <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+                <p>2. Sign up or log in</p>
+                <p>3. Click <strong style="color:#e6edf3;">API Keys</strong> → <strong style="color:#e6edf3;">Create Key</strong></p>
+                <p>4. Copy the key (starts with <code>sk-ant-</code>)</p>
+                <p>5. Open your <code>.env</code> file and add:</p>
+                <p style="margin-top:8px;"><code>ANTHROPIC_API_KEY=sk-ant-your-key-here</code></p>
+            </div>
+            <div class="wizard-actions">
+                <button class="btn-skip" onclick="prevStep()">← Back</button>
+                <button class="btn-next" onclick="nextStep()">Done, next →</button>
+            </div>
+        </div>
+
+        <!-- Step 3: GitHub Token -->
+        <div class="wizard-step" id="step-2">
+            <div class="step-label">Step 3 of 4</div>
+            <h2>GitHub Token</h2>
+            <div class="wizard-sub">This token lets your agents read PRs, CI runs, and deployment history from GitHub.</div>
+            <div class="wizard-box">
+                <p>1. Go to <strong style="color:#e6edf3;">GitHub → Settings → Developer settings</strong></p>
+                <p>2. Click <strong style="color:#e6edf3;">Personal access tokens → Tokens (classic)</strong></p>
+                <p>3. Generate new token — set expiry to <strong style="color:#e6edf3;">90 days</strong></p>
+                <p>4. Check these 3 scopes only:</p>
+                <p style="margin-top:6px;">
+                    <code>public_repo</code> &nbsp;
+                    <code>repo:status</code> &nbsp;
+                    <code>repo_deployment</code>
+                </p>
+                <p style="margin-top:8px;">5. Copy the token (starts with <code>ghp_</code>) and add to <code>.env</code>:</p>
+                <p style="margin-top:8px;"><code>GITHUB_TOKEN=ghp_your-token-here</code></p>
+            </div>
+            <div class="wizard-actions">
+                <button class="btn-skip" onclick="prevStep()">← Back</button>
+                <button class="btn-next" onclick="nextStep()">Done, next →</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Choose Agent or Launch -->
+        <div class="wizard-step" id="step-3">
+            <div class="step-label">Step 4 of 4</div>
+
+            <!-- Shown when coming from Launch DevPilot buttons -->
+            <div id="step3-picker">
+                <h2>Which agent do you want to start with?</h2>
+                <div class="wizard-sub">Pick one to jump straight into it.</div>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <div class="agent-choice" onclick="goToAgent('review')"><span>🔍</span><div><div class="agent-choice-title">PR Review</div><div class="agent-choice-desc">Analyze a pull request for bugs and security issues</div></div></div>
+                    <div class="agent-choice" onclick="goToAgent('testgen')"><span>🧪</span><div><div class="agent-choice-title">Test Generation</div><div class="agent-choice-desc">Auto-generate pytest tests for any source file</div></div></div>
+                    <div class="agent-choice" onclick="goToAgent('cicd')"><span>⚙️</span><div><div class="agent-choice-title">CI/CD Verification</div><div class="agent-choice-desc">Explain why your pipeline is failing</div></div></div>
+                    <div class="agent-choice" onclick="goToAgent('deployment')"><span>🚀</span><div><div class="agent-choice-title">Deployment Monitor</div><div class="agent-choice-desc">Spot patterns in your deployment history</div></div></div>
+                    <div class="agent-choice" onclick="goToAgent('incident')"><span>🚨</span><div><div class="agent-choice-title">Incident Analysis</div><div class="agent-choice-desc">Find the root cause of a production incident</div></div></div>
+                </div>
+                <div class="wizard-actions" style="margin-top:20px;">
+                    <button class="btn-skip" onclick="prevStep()">← Back</button>
+                </div>
+            </div>
+
+            <!-- Shown when coming from an agent card click -->
+            <div id="step3-launch" style="display:none;">
+                <h2>You're all set!</h2>
+                <div class="wizard-sub">Setup complete. Click below to launch your selected agent.</div>
+                <div class="wizard-box">
+                    <div class="check-row"><span class="check-icon">✅</span><p>Anthropic API Key saved</p></div>
+                    <div class="check-row"><span class="check-icon">✅</span><p>GitHub Token saved</p></div>
+                </div>
+                <div class="wizard-actions">
+                    <button class="btn-skip" onclick="prevStep()">← Back</button>
+                    <button class="btn-next green" id="step3-launch-btn" onclick="goToAgent(preselectedAgent)">Launch →</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<footer>
+    Built with Claude AI + GitHub API · DevPilot
+</footer>
+
+<script>
+    // Side button hides when CTA is visible
+    const sideLaunch = document.getElementById('sideLaunch');
+    const ctaBtn = document.getElementById('ctaBtn');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            sideLaunch.classList.toggle('hidden', entry.isIntersecting);
+        });
+    }, { threshold: 0.5 });
+    observer.observe(ctaBtn);
+
+    // Wizard logic
+    let currentStep = 0;
+    const totalSteps = 4;
+    const STORAGE_KEY = 'devpilot_wizard_step';
+    const SETUP_DONE_KEY = 'devpilot_setup_done';
+    let preselectedAgent = null;
+
+    function openWizard() {
+        preselectedAgent = null;
+        _openWizard();
+    }
+
+    function openWizardForAgent(agent) {
+        preselectedAgent = agent;
+        _openWizard();
+    }
+
+    function _openWizard() {
+        const setupDone = localStorage.getItem(SETUP_DONE_KEY) === 'true';
+        document.getElementById('already-setup').style.display = setupDone ? 'block' : 'none';
+        document.getElementById('first-setup').style.display = setupDone ? 'none' : 'block';
+        const saved = setupDone ? 0 : parseInt(localStorage.getItem(STORAGE_KEY) || '0');
+        document.getElementById('wizardOverlay').classList.add('open');
+        showStep(saved);
+    }
+
+    function redoSetup() {
+        localStorage.removeItem(SETUP_DONE_KEY);
+        document.getElementById('already-setup').style.display = 'none';
+        document.getElementById('first-setup').style.display = 'block';
+        showStep(1);
+    }
+
+    function closeWizard() {
+        // Save current step before closing
+        localStorage.setItem(STORAGE_KEY, currentStep);
+        document.getElementById('wizardOverlay').classList.remove('open');
+    }
+
+    function nextStep() {
+        if (currentStep < totalSteps - 1) {
+            showStep(currentStep + 1);
+            localStorage.setItem(STORAGE_KEY, currentStep + 1);
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 0) {
+            showStep(currentStep - 1);
+            localStorage.setItem(STORAGE_KEY, currentStep - 1);
+        }
+    }
+
+    const agentNames = {
+        review: 'PR Review', testgen: 'Test Generation',
+        cicd: 'CI/CD Verification', deployment: 'Deployment Monitor', incident: 'Incident Analysis'
+    };
+
+    function showStep(n) {
+        // If agent preselected, show Step 4 with just a Launch button
+        if (n === 3 && preselectedAgent) {
+            localStorage.setItem(SETUP_DONE_KEY, 'true');
+            document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.step-dot').forEach((d, i) => {
+                d.classList.remove('active', 'done');
+                if (i < n) d.classList.add('done');
+                if (i === n) d.classList.add('active');
+            });
+            document.getElementById('step-3').classList.add('active');
+            document.getElementById('step3-picker').style.display = 'none';
+            document.getElementById('step3-launch').style.display = 'block';
+            document.getElementById('step3-launch-btn').textContent = 'Launch ' + agentNames[preselectedAgent] + ' →';
+            currentStep = 3;
+            return;
+        }
+        document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.step-dot').forEach((d, i) => {
+            d.classList.remove('active', 'done');
+            if (i < n) d.classList.add('done');
+            if (i === n) d.classList.add('active');
+        });
+        document.getElementById('step-' + n).classList.add('active');
+        currentStep = n;
+        if (n === 3) localStorage.setItem(SETUP_DONE_KEY, 'true');
+    }
+
+    function goToApp() {
+        localStorage.removeItem(STORAGE_KEY);
+        window.location.href = '/app';
+    }
+
+    function goToAgent(agent) {
+        localStorage.removeItem(STORAGE_KEY);
+        window.location.href = '/app?agent=' + agent;
+    }
+
+    // Click outside wizard box → close and go back to home
+    document.getElementById('wizardOverlay').addEventListener('click', function(e) {
+        if (e.target === this) closeWizard();
+    });
+
+    // Intercept all Launch DevPilot buttons
+    document.getElementById('sideLaunch').addEventListener('click', e => { e.preventDefault(); openWizard(); });
+    document.getElementById('ctaBtn').addEventListener('click', e => { e.preventDefault(); openWizard(); });
+</script>
+
+</body>
+</html>
